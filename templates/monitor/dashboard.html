@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Monitor</title>
+</head>
+<body>
+    <h1>Network Traffic Dashboard</h1>
+    <div id="data-container">
+        <pre id="network-data"></pre>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host + '/ws/network/');
+
+        ws.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.getElementById('network-data').textContent =
+                JSON.stringify(data, null, 2);
+        };
+    </script>
+</body>
+</html>
