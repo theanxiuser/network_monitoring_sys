@@ -2,18 +2,69 @@
 <html>
 <head>
     <title>Network Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <h1>Network Traffic Dashboard</h1>
     <div id="data-container">
         <pre id="network-data"></pre>
     </div>
+
+    <h1>Real-Time Network Monitoring</h1>
+    <canvas id="latencyChart"></canvas>
+
+    <h1>Live Network Traffic</h1>
+    <canvas id="packetChart"></canvas>
+
+{#    <script>#}
+{#        const ws = new WebSocket("ws://127.0.0.1:8000/ws/network/");#}
+{##}
+{#        ws.onmessage = function(event) {#}
+{#            const data = JSON.parse(event.data);#}
+{#            const timestamps = data.logs.map(log => log.timestamp);#}
+{#            const latencies = data.logs.map(log => log.latency);#}
+{##}
+{#            new Chart(document.getElementById('latencyChart'), {#}
+{#                type: 'line',#}
+{#                data: {#}
+{#                    labels: timestamps,#}
+{#                    datasets: [{ label: 'Latency (ms)', data: latencies, borderColor: 'red', borderWidth: 1 }]#}
+{#                }#}
+{#            });#}
+{#        };#}
+{#    </script>#}
+{##}
+{#    <script>#}
+{#        var ctx = document.getElementById('packetChart').getContext('2d');#}
+{#        var packetChart = new Chart(ctx, {#}
+{#            type: 'line',#}
+{#            data: {#}
+{#                labels: [],#}
+{#                datasets: [{#}
+{#                    label: 'Packet Count',#}
+{#                    borderColor: 'rgb(255, 99, 132)',#}
+{#                    data: [],#}
+{#                }]#}
+{#            }#}
+{#        });#}
+{##}
+{#        var socket = new WebSocket("ws://127.0.0.1:8000/ws/network/");#}
+{##}
+{#        socket.onmessage = function(event) {#}
+{#            var data = JSON.parse(event.data);#}
+{#            packetChart.data.labels.push(new Date().toLocaleTimeString());#}
+{#            packetChart.data.datasets[0].data.push(data.length);#}
+{#            packetChart.update();#}
+{#        };#}
+{#    </script>#}
 
     <script>
         const ws = new WebSocket('ws://' + window.location.host + '/ws/network/');
 
         ws.onmessage = function(e) {
             const data = JSON.parse(e.data);
+            console.log(data);
             document.getElementById('network-data').textContent =
                 JSON.stringify(data, null, 2);
         };
