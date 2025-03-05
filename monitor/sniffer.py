@@ -1,9 +1,13 @@
 import threading
+from datetime import datetime
+
 from scapy.all import sniff
 from scapy.layers.inet import IP
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import time
+from .models import AnomalyLog
+
 
 packet_history = []
 start_time = time.time()
@@ -55,6 +59,7 @@ def packet_handler(packet):
             'source_ip': packet[IP].src,
             'dest_ip': packet[IP].dst,
             'length': len(packet),
+            'protocol': packet[IP].proto
         }
         # print(packet_data)
         packet_history.append(packet_data)
@@ -68,6 +73,18 @@ def packet_handler(packet):
                    matrices['jitter'] > JITTER_THRESHOLD or
                    matrices['packet_loss'] > PACKET_LOSS_THRESHOLD or
                    matrices['bandwidth'] > BANDWIDTH_THRESHOLD)
+
+        if anomaly:
+            AnomalyLog.objects.create(
+                source_ip=packet_data['source_ip'],
+                destination_ip=packet_data['dest_ip'],
+                protocol=packet_data['protocol'],
+                length=packet_data['length'],
+                latency=matrices['latency'],
+                jitter=matrices['jitter'],
+                packet_loss=matrices['packet_loss'],
+                bandwidth=matrices['bandwidth']
+            )
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(

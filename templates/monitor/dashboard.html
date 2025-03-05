@@ -6,67 +6,119 @@
 </head>
 <body>
 
-    <h1>Network Traffic Dashboard</h1>
+    <h1>Live Network Traffic</h1>
+    <a href="{% url 'anomaly_logs' %}" class="bg-blue-500 text-white px-4 py-2 rounded-lg">View Anomaly Logs</a>
     <div id="data-container">
-        <pre id="network-data"></pre>
+        <!-- Packet Information -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-2">Packet Details</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div><strong>Timestamp:</strong> <span id="packet-timestamp"></span></div>
+                <div><strong>Source IP:</strong> <span id="packet-source-ip"></span></div>
+                <div><strong>Destination IP:</strong> <span id="packet-dest-ip"></span></div>
+                <div><strong>Length:</strong> <span id="packet-length"></span></div>
+                <div><strong>Protocol:</strong> <span id="packet-protocol"></span></div>
+            </div>
+        </div>
+
+        <!-- Metrics Information -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-2">Metrics</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div><strong>Latency:</strong> <span id="metrics-latency"></span> ms</div>
+                <div><strong>Jitter:</strong> <span id="metrics-jitter"></span> ms</div>
+                <div><strong>Packet Loss:</strong> <span id="metrics-packet-loss"></span>%</div>
+                <div><strong>Bandwidth:</strong> <span id="metrics-bandwidth"></span> Mbps</div>
+            </div>
+        </div>
+
+        <!-- Anomaly Information -->
+        <div>
+            <h2 class="text-xl font-semibold mb-2">Anomaly Detection</h2>
+            <div id="anomaly-status" class="inline-block px-4 py-2 rounded-full text-white font-semibold"></div>
+        </div>
+    </div>
     </div>
 
     <h1>Real-Time Network Monitoring</h1>
     <canvas id="latencyChart"></canvas>
 
-    <h1>Live Network Traffic</h1>
-    <canvas id="packetChart"></canvas>
-
-{#    <script>#}
-{#        const ws = new WebSocket("ws://127.0.0.1:8000/ws/network/");#}
-{##}
-{#        ws.onmessage = function(event) {#}
-{#            const data = JSON.parse(event.data);#}
-{#            const timestamps = data.logs.map(log => log.timestamp);#}
-{#            const latencies = data.logs.map(log => log.latency);#}
-{##}
-{#            new Chart(document.getElementById('latencyChart'), {#}
-{#                type: 'line',#}
-{#                data: {#}
-{#                    labels: timestamps,#}
-{#                    datasets: [{ label: 'Latency (ms)', data: latencies, borderColor: 'red', borderWidth: 1 }]#}
-{#                }#}
-{#            });#}
-{#        };#}
-{#    </script>#}
-{##}
-{#    <script>#}
-{#        var ctx = document.getElementById('packetChart').getContext('2d');#}
-{#        var packetChart = new Chart(ctx, {#}
-{#            type: 'line',#}
-{#            data: {#}
-{#                labels: [],#}
-{#                datasets: [{#}
-{#                    label: 'Packet Count',#}
-{#                    borderColor: 'rgb(255, 99, 132)',#}
-{#                    data: [],#}
-{#                }]#}
-{#            }#}
-{#        });#}
-{##}
-{#        var socket = new WebSocket("ws://127.0.0.1:8000/ws/network/");#}
-{##}
-{#        socket.onmessage = function(event) {#}
-{#            var data = JSON.parse(event.data);#}
-{#            packetChart.data.labels.push(new Date().toLocaleTimeString());#}
-{#            packetChart.data.datasets[0].data.push(data.length);#}
-{#            packetChart.update();#}
-{#        };#}
-{#    </script>#}
-
     <script>
+        // Initialize arrays to store timestamps and latencies
+        const timestamps = [];
+        const latencies = [];
+
+        // Initialize the chart
+        const ctx = document.getElementById('latencyChart').getContext('2d');
+        const latencyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: latencies,
+                    borderColor: 'red',
+                    borderWidth: 1,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Timestamp'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Latency (ms)'
+                        }
+                    }
+                }
+            }
+        });
+
+        function updateUI(data) {
+            // Packet Details
+            document.getElementById('packet-timestamp').textContent = new Date(data.packet.timestamp * 1000).toLocaleString();
+            document.getElementById('packet-source-ip').textContent = data.packet.source_ip;
+            document.getElementById('packet-dest-ip').textContent = data.packet.dest_ip;
+            document.getElementById('packet-length').textContent = data.packet.length;
+            document.getElementById('packet-protocol').textContent = data.packet.protocol;
+
+            // Metrics
+            document.getElementById('metrics-latency').textContent = data.metrics.latency.toFixed(2);
+            document.getElementById('metrics-jitter').textContent = data.metrics.jitter.toFixed(2);
+            document.getElementById('metrics-packet-loss').textContent = data.metrics.packet_loss;
+            document.getElementById('metrics-bandwidth').textContent = (data.metrics.bandwidth / 1000).toFixed(2); // Convert to Mbps
+
+            // Anomaly Status
+            const anomalyStatus = document.getElementById('anomaly-status');
+            anomalyStatus.textContent = data.anomaly ? "Anomaly Detected" : "No Anomaly";
+            anomalyStatus.classList.toggle('bg-red-500', data.anomaly);
+            anomalyStatus.classList.toggle('bg-green-500', !data.anomaly);
+        }
+
         const ws = new WebSocket('ws://' + window.location.host + '/ws/network/');
 
         ws.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            console.log(data);
-            document.getElementById('network-data').textContent =
-                JSON.stringify(data, null, 2);
+            console.log({data});
+            const timestamp = data.packet.timestamp;
+            const latency = data.metrics.latency;
+
+
+            timestamps.push(timestamp)
+            latencies.push(latency)
+
+            latencyChart.data.labels = timestamps;
+            latencyChart.data.datasets[0].data = latencies;
+            latencyChart.update();
+            updateUI(data);
         };
     </script>
 </body>
