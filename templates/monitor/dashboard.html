@@ -29,6 +29,8 @@
                 <div><strong>Jitter:</strong> <span id="metrics-jitter"></span> ms</div>
                 <div><strong>Packet Loss:</strong> <span id="metrics-packet-loss"></span>%</div>
                 <div><strong>Bandwidth:</strong> <span id="metrics-bandwidth"></span> Mbps</div>
+                <div><strong>Uplink Bandwidth:</strong> <span id="metrics-uplink-bandwidth"></span> Mbps</div>
+                <div><strong>Downlink Bandwidth:</strong> <span id="metrics-downlink-bandwidth"></span> Mbps</div>
             </div>
         </div>
 
@@ -36,6 +38,18 @@
         <div>
             <h2 class="text-xl font-semibold mb-2">Anomaly Detection</h2>
             <div id="anomaly-status" class="inline-block px-4 py-2 rounded-full text-white font-semibold"></div>
+        </div>
+
+        <!-- Detailed Anomalies -->
+        <div>
+            <h3 class="text-lg font-medium mt-4">Current Anomalies</h3>
+            <ul id="anomaly-list" class="list-disc pl-5"></ul>
+        </div>
+
+        <!-- Weekly Anomalies -->
+        <div>
+            <h3 class="text-lg font-medium mt-4">Weekly Anomalies</h3>
+            <ul id="week-anomaly-list" class="list-disc pl-5"></ul>
         </div>
     </div>
     </div>
@@ -94,13 +108,40 @@
             document.getElementById('metrics-latency').textContent = data.metrics.latency.toFixed(2);
             document.getElementById('metrics-jitter').textContent = data.metrics.jitter.toFixed(2);
             document.getElementById('metrics-packet-loss').textContent = data.metrics.packet_loss;
-            document.getElementById('metrics-bandwidth').textContent = (data.metrics.bandwidth / 1000).toFixed(2); // Convert to Mbps
+            document.getElementById('metrics-bandwidth').textContent = (data.metrics.bandwidth / 1000).toFixed(2);
+            document.getElementById('metrics-uplink-bandwidth').textContent = (data.metrics.uplink_bandwidth / 1000).toFixed(2);
+            document.getElementById('metrics-downlink-bandwidth').textContent = (data.metrics.downlink_bandwidth / 1000).toFixed(2);
 
             // Anomaly Status
             const anomalyStatus = document.getElementById('anomaly-status');
-            anomalyStatus.textContent = data.anomaly ? "Anomaly Detected" : "No Anomaly";
-            anomalyStatus.classList.toggle('bg-red-500', data.anomaly);
-            anomalyStatus.classList.toggle('bg-green-500', !data.anomaly);
+            const anomalyList = document.getElementById('anomaly-list');
+            const weekAnomalyList = document.getElementById('week-anomaly-list');
+
+            // Update overall anomaly status
+            const hasAnomaly = data.anomaly;
+            anomalyStatus.textContent = hasAnomaly ? "Anomaly Detected" : "No Anomaly";
+            anomalyStatus.classList.toggle('bg-red-500', hasAnomaly);
+            anomalyStatus.classList.toggle('bg-green-500', !hasAnomaly);
+
+            // Display detailed anomalies
+            anomalyList.innerHTML = "";
+            Object.entries(data.anomalies).forEach(([key, value]) => {
+                if (value) {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = key.replace(/_/g, ' ').replace('anomaly', 'Anomaly');
+                    anomalyList.appendChild(listItem);
+                }
+            });
+
+            // Display weekly anomalies
+            weekAnomalyContainer.innerHTML = ""; // Clear previous entries
+
+            data.week_anomalies.forEach(anomaly => {
+                const anomalyItem = document.createElement('p');
+                anomalyItem.textContent = `${anomaly.anomaly_type}: ${anomaly.count}`;
+                weekAnomalyContainer.appendChild(anomalyItem);
+            });
+
         }
 
         const ws = new WebSocket('ws://' + window.location.host + '/ws/network/');

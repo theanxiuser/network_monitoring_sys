@@ -12,6 +12,7 @@
             <th class="border p-2">Source</th>
             <th class="border p-2">Destination</th>
             <th class="border p-2">Protocol</th>
+            <th class="border p-2">Anomaly</th>
         </tr>
         {% for log in logs %}
         <tr>
@@ -19,6 +20,7 @@
             <td class="border p-2">{{ log.source_ip }}</td>
             <td class="border p-2">{{ log.destination_ip }}</td>
             <td class="border p-2">{{ log.protocol }}</td>
+            <td class="border p-2">{{ log.anomaly_type }}</td>
         </tr>
         {% endfor %}
     </table>

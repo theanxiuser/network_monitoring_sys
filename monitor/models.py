@@ -11,6 +11,9 @@ class AnomalyLog(models.Model):
     jitter = models.FloatField()
     packet_loss = models.FloatField()
     bandwidth = models.FloatField()
+    uplink_bandwidth = models.FloatField()
+    downlink_bandwidth = models.FloatField()
+    anomaly_type = models.CharField(max_length=255)
 
     def __str__(self):
         return f'{self.source_ip} -> {self.destination_ip}'
